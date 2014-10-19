@@ -1,3 +1,10 @@
+Deflickered
+*.jpg
+*.JPG
+*.png
+*.PNG
+*.tiff
+*.TIFF
 /blib/
 /.build/
 _build/
