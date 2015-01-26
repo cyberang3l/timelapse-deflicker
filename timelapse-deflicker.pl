@@ -81,11 +81,20 @@ if ( scalar @files != 0 ) {
 
       my $image = Image::Magick->new;
       $image->Read($filename);
+      #$image->Gamma(gamma => 2.2, channel => 'All');
       my @statistics = $image->Statistics();
+      # Use the command "identify -verbose DSC_8400.JPG" in order to see why $R, $G and $B
+      # are read from the following index in the statistics array
+      # This is the average R, G and B for the whole image.
+      #for(my $i = 0; $i < scalar(@statistics); $i++){
+      #  print($statistics[$i] . "\n");
+      #}
+      #exit(0);
       my $R          = @statistics[ ( 0 * 7 ) + 3 ];
       my $G          = @statistics[ ( 1 * 7 ) + 3 ];
       my $B          = @statistics[ ( 2 * 7 ) + 3 ];
 
+      # We use the following formula to get the perceived luminance
       $luminance{$count}{original} = 0.299 * $R + 0.587 * $G + 0.114 * $B;
 
       #$luminance{$count}{original} = 0.2126 * $R + 0.7152 * $G + 0.0722 * $B;
@@ -152,7 +161,12 @@ sub luminance_change {
 
     my $brightness = ( 1 / ( $luminance{$i}{original} / $luminance{$i}{value} ) ) * 100;
 
-    #my $gamma = 1 / ( $luminance{$i}{original} / $luminance{$i}{value} );
+    # Debug gamma and other imagemagick functions on command line:
+    #    convert DSC_8400.JPG -gamma 1 jpg:- | display jpg:-
+    #    convert DSC_8400.JPG -colorspace Gray -gamma 2.2 jpg:- | display jpg:-
+    #    convert DSC_8400.JPG -colorspace Gray -gamma 2.2 jpg:- | identify -verbose jpg:-
+    #    convert DSC_8400.JPG -format "%[gamma]\n" info:
+    #my $gamma = (1 / ( $luminance{$i}{original} / $luminance{$i}{value} ));
 
     debug("Imagemagick will set brightness of $luminance{$i}{filename} to: $brightness\n");
 
