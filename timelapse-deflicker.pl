@@ -35,7 +35,11 @@ my $Passes        = 1;
 
 #####################
 # handle flags and arguments
-# Example: c == "-c", c: == "-c argument"
+# h is "help" (no arguments)
+# v is "verbose" (no arguments)
+# d is "debug" (no arguments)
+# w is "rolling window size" (single numeric argument)
+# p is "passes" (single numeric argument)
 my $opt_string = 'hvdw:p:';
 getopts( "$opt_string", \my %opt ) or usage() and exit 1;
 
