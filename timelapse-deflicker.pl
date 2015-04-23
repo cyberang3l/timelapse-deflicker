@@ -54,8 +54,9 @@ $DEBUG         = 1         if $opt{'d'};
 $RollingWindow = $opt{'w'} if defined( $opt{'w'} );
 $Passes        = $opt{'p'} if defined( $opt{'p'} );
 
-die "The rolling average window for luminance smoothing should be a positive number greater or equal to 2" if ( $RollingWindow < 2 );
-die "The number of passes should be a positive number greater or equal to 1"                               if ( $Passes < 1 );
+#This integer test fails on "+n", but that isn't serious here.
+die "The rolling average window for luminance smoothing should be a positive number greater or equal to 2" if ! ($RollingWindow eq int( $RollingWindow ) && $RollingWindow > 1 ) ;
+die "The number of passes should be a positive number greater or equal to 1"                               if ! ($Passes eq int( $Passes ) && $Passes > 0 ) ;
 
 # main program content
 my %luminance;
