@@ -90,7 +90,6 @@ if ( scalar @files != 0 ) {
       #Create exifTool object for the image
       my $exifTool = new Image::ExifTool;
       $image->Read($filename);
-      #$image->Gamma(gamma => 2.2, channel => 'All');
       my @statistics = $image->Statistics();
       # Use the command "identify -verbose DSC_8400.JPG" in order to see why $R, $G and $B
       # are read from the following index in the statistics array
