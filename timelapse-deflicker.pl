@@ -24,6 +24,7 @@ use Image::Magick;
 use Data::Dumper;
 use File::Type;
 use Term::ProgressBar;
+use Image::ExifTool qw(:Public);
 
 #use File::Spec;
 
@@ -84,7 +85,10 @@ if ( scalar @files != 0 ) {
     if ( $filetype eq "image" ) {
       verbose("Original luminance of Image $filename is being processed...\n");
 
+      #Create ImageMagick object for the image
       my $image = Image::Magick->new;
+      #Create exifTool object for the image
+      my $exifTool = new Image::ExifTool;
       $image->Read($filename);
       #$image->Gamma(gamma => 2.2, channel => 'All');
       my @statistics = $image->Statistics();
@@ -102,11 +106,11 @@ if ( scalar @files != 0 ) {
       # We use the following formula to get the perceived luminance
       $luminance{$count}{original} = 0.299 * $R + 0.587 * $G + 0.114 * $B;
 
-      #$luminance{$count}{original} = 0.2126 * $R + 0.7152 * $G + 0.0722 * $B;
       $luminance{$count}{value}    = $luminance{$count}{original};
       $luminance{$count}{filename} = $filename;
 
-      #$luminance{$count}{abs_path_filename} = File::Spec->rel2abs($filename);
+      #$exifTool->SetNewValue(Author => "Joe Author" ); #TODO: Create and set custom tag instead of author tag
+      #$exifTool->WriteInfo(undef, $filename . ".xmp", 'XMP'); #Write the XMP file
       $count++;
     }
 
