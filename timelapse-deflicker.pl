@@ -170,16 +170,7 @@ sub luminance_change {
 
     my $brightness = ( 1 / ( $luminance{$i}{original} / $luminance{$i}{value} ) ) * 100;
 
-    # Debug gamma and other imagemagick functions on command line:
-    #    convert DSC_8400.JPG -gamma 1 jpg:- | display jpg:-
-    #    convert DSC_8400.JPG -colorspace Gray -gamma 2.2 jpg:- | display jpg:-
-    #    convert DSC_8400.JPG -colorspace Gray -gamma 2.2 jpg:- | identify -verbose jpg:-
-    #    convert DSC_8400.JPG -format "%[gamma]\n" info:
-    #my $gamma = (1 / ( $luminance{$i}{original} / $luminance{$i}{value} ));
-
     debug("Imagemagick will set brightness of $luminance{$i}{filename} to: $brightness\n");
-
-    #debug("Imagemagick will set gamma value of $luminance{$i}{filename} to: $gamma\n");
 
     if ( !-d "Deflickered" ) {
       mkdir("Deflickered") || die "Error creating directory: $!\n";
@@ -191,7 +182,6 @@ sub luminance_change {
 
     $image->Mogrify( 'modulate', brightness => $brightness );
 
-    #$image->Gamma( gamma => $gamma, channel => 'All' );
     $image->Write( "Deflickered/" . $luminance{$i}{filename} );
 
     $progress->update( $i + 1 );
