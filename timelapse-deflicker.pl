@@ -91,13 +91,9 @@ if ( scalar @files != 0 ) {
       my $exifTool = new Image::ExifTool;
       $image->Read($filename);
       my @statistics = $image->Statistics();
-      # Use the command "identify -verbose DSC_8400.JPG" in order to see why $R, $G and $B
+      # Use the command "identify -verbose <some image file>" in order to see why $R, $G and $B
       # are read from the following index in the statistics array
       # This is the average R, G and B for the whole image.
-      #for(my $i = 0; $i < scalar(@statistics); $i++){
-      #  print($statistics[$i] . "\n");
-      #}
-      #exit(0);
       my $R          = @statistics[ ( 0 * 7 ) + 3 ];
       my $G          = @statistics[ ( 1 * 7 ) + 3 ];
       my $B          = @statistics[ ( 2 * 7 ) + 3 ];
