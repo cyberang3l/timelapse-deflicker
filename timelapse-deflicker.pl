@@ -97,19 +97,42 @@ if ( scalar @files != 0 ) {
   }
 }
 
-
 my $max_entries = scalar( keys %luminance );
 
-if ! ( $max_entries > 1 ) { die "Cannot process less than two files.\n" } else {
+if ( $max_entries < 2 ) { die "Cannot process less than two files.\n" } else {
   say "$max_entries image files to be processed.";
   say "Original luminance of Images is being calculated";
   say "Please be patient as this might take several minutes...";
 }
 
-#Get luminance stats for each of the images:
-for ( my $i = 0; $i < $max_entries; $i++ ) {
+#Determine luminance of each file and add to the hash.
+luminance_det();
 
+my $CurrentPass = 1;
+
+while ( $CurrentPass <= $Passes ) {
+  say "\n-------------- LUMINANCE SMOOTHING PASS $CurrentPass/$Passes --------------\n";
+  luminance_calculation();
+  $CurrentPass++;
+}
+
+say "\n\n-------------- CHANGING OF BRIGHTNESS WITH THE CALCULATED VALUES --------------\n";
+luminance_change();
+
+say "\n\nJob completed";
+say "$max_entries files have been processed";
+
+#####################
+# Helper routines
+
+#Determine luminance of each image; add to hash.
+sub luminance_det {
+  my $progress    = Term::ProgressBar->new( { count => $max_entries } );
+
+  for ( my $i = 0; $i < $max_entries; $i++ ) {
     verbose("Original luminance of Image $luminance{$i}{filename} is being processed...\n");
+    
+    #TODO: Just read the value if an xmp file already exists which has the right tag
 
     #Create ImageMagick object for the image
     my $image = Image::Magick->new;
@@ -130,31 +153,14 @@ for ( my $i = 0; $i < $max_entries; $i++ ) {
     #Create exifTool object for the image
     my $exifTool = new Image::ExifTool;
     #Write luminance info to an xmp file.
-    $exifTool->SetNewValue(Author => "Joe Author" ); #TODO: Create and set custom tag instead of author tag
+    #in progress: testing xmp in/out
+    $exifTool->SetNewValue(Author => $luminance{$i}{value}); #TODO: Create and set custom tag instead of author tag
     $exifTool->WriteInfo(undef, $luminance{$i}{filename} . ".xmp", 'XMP'); #Write the XMP file
+    $progress->update( $i + 1 );
   }
-
 }
-
-my $CurrentPass = 1;
-
-while ( $CurrentPass <= $Passes ) {
-  say "\n-------------- LUMINANCE SMOOTHING PASS $CurrentPass/$Passes --------------\n";
-  luminance_calculation();
-  $CurrentPass++;
-}
-
-say "\n\n-------------- CHANGING OF BRIGHTNESS WITH THE CALCULATED VALUES --------------\n";
-luminance_change();
-
-say "\n\nJob completed";
-say "$max_entries files have been processed";
-
-#####################
-# Helper routines
 
 sub luminance_calculation {
-  #my $max_entries = scalar( keys %luminance );
   my $progress    = Term::ProgressBar->new( { count => $max_entries } );
   my $low_window  = int( $RollingWindow / 2 );
   my $high_window = $RollingWindow - $low_window;
@@ -175,7 +181,6 @@ sub luminance_calculation {
 }
 
 sub luminance_change {
-  my $max_entries = scalar( keys %luminance );
   my $progress = Term::ProgressBar->new( { count => $max_entries } );
 
   for ( my $i = 0; $i < $max_entries; $i++ ) {
