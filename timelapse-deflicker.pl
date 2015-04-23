@@ -99,12 +99,10 @@ if ( scalar @files != 0 ) {
 
 my $max_entries = scalar( keys %luminance );
 
-if ( $max_entries < 2 ) { die "Cannot process less than two files.\n" } else {
-  say "$max_entries image files to be processed.";
-  say "Original luminance of Images is being calculated";
-  say "Please be patient as this might take several minutes...";
-}
+if ( $max_entries < 2 ) { die "Cannot process less than two files.\n" }
 
+say "$max_entries image files to be processed.";
+say "Original luminance of Images is being calculated";
 #Determine luminance of each file and add to the hash.
 luminance_det();
 
