@@ -59,63 +59,82 @@ $Passes        = $opt{'p'} if defined( $opt{'p'} );
 die "The rolling average window for luminance smoothing should be a positive number greater or equal to 2" if ! ($RollingWindow eq int( $RollingWindow ) && $RollingWindow > 1 ) ;
 die "The number of passes should be a positive number greater or equal to 1"                               if ! ($Passes eq int( $Passes ) && $Passes > 0 ) ;
 
-# main program content
+# Create hash to hold luminance values.
+# Format will be: TODO: Add this here
 my %luminance;
 
+# The working directory is the current directory.
 my $data_dir = ".";
-
 opendir( DATA_DIR, $data_dir ) || die "Cannot open $data_dir\n";
+#Put list of files in the directory into an array:
 my @files = readdir(DATA_DIR);
+#Assume that the files are named in dictionary sequence - they will be processed as such.
 @files = sort @files;
 
+#Initialize count variable to number files in hash
 my $count = 0;
 
+#Initialize a variable to hold the previous image type detected - if this changes, warn user
+my $prevfmt = "";
+
+#Process the list of files, putting all image files into the luminance hash.
 if ( scalar @files != 0 ) {
-
-  say "Original luminance of Images is being calculated";
-  say "Please be patient as this might take several minutes...";
-
   foreach my $filename (@files) {
-
-    my $ft   = File::Type->new();
-    my $type = $ft->mime_type($filename);
-
-    #say "$data_dir/$filename";
-    my ( $filetype, $fileformat ) = split( /\//, $type );
-    if ( $filetype eq "image" ) {
-      verbose("Original luminance of Image $filename is being processed...\n");
-
-      #Create ImageMagick object for the image
-      my $image = Image::Magick->new;
-      #Create exifTool object for the image
-      my $exifTool = new Image::ExifTool;
-      $image->Read($filename);
-      my @statistics = $image->Statistics();
-      # Use the command "identify -verbose <some image file>" in order to see why $R, $G and $B
-      # are read from the following index in the statistics array
-      # This is the average R, G and B for the whole image.
-      my $R          = @statistics[ ( 0 * 7 ) + 3 ];
-      my $G          = @statistics[ ( 1 * 7 ) + 3 ];
-      my $B          = @statistics[ ( 2 * 7 ) + 3 ];
-
-      # We use the following formula to get the perceived luminance
-      $luminance{$count}{original} = 0.299 * $R + 0.587 * $G + 0.114 * $B;
-
-      $luminance{$count}{value}    = $luminance{$count}{original};
-      $luminance{$count}{filename} = $filename;
-
-      #$exifTool->SetNewValue(Author => "Joe Author" ); #TODO: Create and set custom tag instead of author tag
-      #$exifTool->WriteInfo(undef, $filename . ".xmp", 'XMP'); #Write the XMP file
-      $count++;
-    }
-
+      my $ft   = File::Type->new();
+      my $type = $ft->mime_type($filename);
+      my ( $filetype, $fileformat ) = split( /\//, $type );
+      #If it's an image file, add it to the luminance hash.
+      if ( $filetype eq "image" ) {
+	#Check whether we have a new image format - this is probably unwanted, so warn the user.
+	if ( $prevfmt eq "" ) { $prevfmt = $fileformat } elsif ( $prevfmt ne "warned" && $prevfmt ne $fileformat ) {
+	  say "Images of type $prevfmt and $fileformat detected! ARE YOU SURE THIS IS JUST ONE IMAGE SEQUENCE?";
+	  #no more warnings about this from now on
+	  $prevfmt = "warned"
+	}
+	$luminance{$count}{filename} = $filename;
+	$count++;
+      }
   }
-
 }
+
 
 my $max_entries = scalar( keys %luminance );
 
-say "$max_entries images found in the folder which will be processed further.";
+if ! ( $max_entries > 1 ) { die "Cannot process less than two files.\n" } else {
+  say "$max_entries image files to be processed.";
+  say "Original luminance of Images is being calculated";
+  say "Please be patient as this might take several minutes...";
+}
+
+#Get luminance stats for each of the images:
+for ( my $i = 0; $i < $max_entries; $i++ ) {
+
+    verbose("Original luminance of Image $luminance{$i}{filename} is being processed...\n");
+
+    #Create ImageMagick object for the image
+    my $image = Image::Magick->new;
+    #Evaluate the image using ImageMagick.
+    $image->Read($luminance{$i}{filename});
+    my @statistics = $image->Statistics();
+    # Use the command "identify -verbose <some image file>" in order to see why $R, $G and $B
+    # are read from the following index in the statistics array
+    # This is the average R, G and B for the whole image.
+    my $R          = @statistics[ ( 0 * 7 ) + 3 ];
+    my $G          = @statistics[ ( 1 * 7 ) + 3 ];
+    my $B          = @statistics[ ( 2 * 7 ) + 3 ];
+
+    # We use the following formula to get the perceived luminance
+    $luminance{$i}{original} = 0.299 * $R + 0.587 * $G + 0.114 * $B;
+    $luminance{$i}{value}    = $luminance{$i}{original};
+
+    #Create exifTool object for the image
+    my $exifTool = new Image::ExifTool;
+    #Write luminance info to an xmp file.
+    $exifTool->SetNewValue(Author => "Joe Author" ); #TODO: Create and set custom tag instead of author tag
+    $exifTool->WriteInfo(undef, $luminance{$i}{filename} . ".xmp", 'XMP'); #Write the XMP file
+  }
+
+}
 
 my $CurrentPass = 1;
 
@@ -135,7 +154,7 @@ say "$max_entries files have been processed";
 # Helper routines
 
 sub luminance_calculation {
-  my $max_entries = scalar( keys %luminance );
+  #my $max_entries = scalar( keys %luminance );
   my $progress    = Term::ProgressBar->new( { count => $max_entries } );
   my $low_window  = int( $RollingWindow / 2 );
   my $high_window = $RollingWindow - $low_window;
@@ -161,7 +180,7 @@ sub luminance_change {
 
   for ( my $i = 0; $i < $max_entries; $i++ ) {
     debug("Original luminance of $luminance{$i}{filename}: $luminance{$i}{original}\n");
-    debug(" Changed luminance of $luminance{$i}{filename}: $luminance{$i}{value}\n");
+    debug("Changed luminance of $luminance{$i}{filename}: $luminance{$i}{value}\n");
 
     my $brightness = ( 1 / ( $luminance{$i}{original} / $luminance{$i}{value} ) ) * 100;
 
