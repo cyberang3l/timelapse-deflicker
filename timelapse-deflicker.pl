@@ -175,6 +175,7 @@ sub luminance_change {
     if ( !-d "Deflickered" ) {
       mkdir("Deflickered") || die "Error creating directory: $!\n";
     }
+    #TODO: Create directory name with timestamp to avoid overwriting previous work.
 
     debug("Changing brightness of $luminance{$i}{filename} and saving to the destination directory...\n");
     my $image = Image::Magick->new;
