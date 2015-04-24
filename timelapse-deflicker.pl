@@ -149,30 +149,41 @@ sub luminance_det {
   for ( my $i = 0; $i < $max_entries; $i++ ) {
     verbose("Original luminance of Image $luminance{$i}{filename} is being processed...\n");
     
-    #TODO: Just read the value if an xmp file already exists which has the right tag
-
-    #Create ImageMagick object for the image
-    my $image = Image::Magick->new;
-    #Evaluate the image using ImageMagick.
-    $image->Read($luminance{$i}{filename});
-    my @statistics = $image->Statistics();
-    # Use the command "identify -verbose <some image file>" in order to see why $R, $G and $B
-    # are read from the following index in the statistics array
-    # This is the average R, G and B for the whole image.
-    my $R          = @statistics[ ( 0 * 7 ) + 3 ];
-    my $G          = @statistics[ ( 1 * 7 ) + 3 ];
-    my $B          = @statistics[ ( 2 * 7 ) + 3 ];
-
-    # We use the following formula to get the perceived luminance
-    $luminance{$i}{original} = 0.299 * $R + 0.587 * $G + 0.114 * $B;
-    $luminance{$i}{value}    = $luminance{$i}{original};
-
     #Create exifTool object for the image
     my $exifTool = new Image::ExifTool;
-    #Write luminance info to an xmp file.
-    #in progress: testing xmp in/out
-    $exifTool->SetNewValue(luminance => $luminance{$i}{value}); 
-    $exifTool->WriteInfo(undef, $luminance{$i}{filename} . ".xmp", 'XMP'); #Write the XMP file
+    my $exifinfo; #variable to hold info read from xmp file if present.
+
+    #If there's already an xmp file for this filename, read it.
+    if (-e $luminance{$i}{filename}.".xmp") { 
+      $exifinfo = $exifTool->ImageInfo($luminance{$i}{filename}.".xmp");
+    }
+    #Now, if it already has a luminance value, just use that:
+    if ( length $$exifinfo{Luminance} ) {
+      # Set it as the original and target value to start out with.
+      $luminance{$i}{value} = $luminance{$i}{original} = $$exifinfo{Luminance};
+    }
+    else {
+      #Create ImageMagick object for the image
+      my $image = Image::Magick->new;
+      #Evaluate the image using ImageMagick.
+      $image->Read($luminance{$i}{filename});
+      my @statistics = $image->Statistics();
+      # Use the command "identify -verbose <some image file>" in order to see why $R, $G and $B
+      # are read from the following index in the statistics array
+      # This is the average R, G and B for the whole image.
+      my $R          = @statistics[ ( 0 * 7 ) + 3 ];
+      my $G          = @statistics[ ( 1 * 7 ) + 3 ];
+      my $B          = @statistics[ ( 2 * 7 ) + 3 ];
+
+      # We use the following formula to get the perceived luminance.
+      # Set it as the original and target value to start out with.
+      $luminance{$i}{value} = $luminance{$i}{original} = 0.299 * $R + 0.587 * $G + 0.114 * $B;
+
+      #Write luminance info to an xmp file.  TODO: This fails if there is already an xmp file for this image.
+      #This is the xmp for the input file, so it contains the original luminance.
+      $exifTool->SetNewValue(luminance => $luminance{$i}{original}); 
+      $exifTool->WriteInfo(undef, $luminance{$i}{filename} . ".xmp", 'XMP'); #Write the XMP file
+    }
     $progress->update( $i + 1 );
   }
 }
