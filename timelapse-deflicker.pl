@@ -156,11 +156,13 @@ sub luminance_det {
     #If there's already an xmp file for this filename, read it.
     if (-e $luminance{$i}{filename}.".xmp") { 
       $exifinfo = $exifTool->ImageInfo($luminance{$i}{filename}.".xmp");
+      debug("Found xmp file: $luminance{$i}{filename}.xmp\n")
     }
     #Now, if it already has a luminance value, just use that:
     if ( length $$exifinfo{Luminance} ) {
       # Set it as the original and target value to start out with.
       $luminance{$i}{value} = $luminance{$i}{original} = $$exifinfo{Luminance};
+      debug("Read luminance $$exifinfo{Luminance} from xmp file: $luminance{$i}{filename}.xmp\n")
     }
     else {
       #Create ImageMagick object for the image
@@ -179,10 +181,17 @@ sub luminance_det {
       # Set it as the original and target value to start out with.
       $luminance{$i}{value} = $luminance{$i}{original} = 0.299 * $R + 0.587 * $G + 0.114 * $B;
 
-      #Write luminance info to an xmp file.  TODO: This fails if there is already an xmp file for this image.
+      #Write luminance info to an xmp file.
       #This is the xmp for the input file, so it contains the original luminance.
       $exifTool->SetNewValue(luminance => $luminance{$i}{original}); 
-      $exifTool->WriteInfo(undef, $luminance{$i}{filename} . ".xmp", 'XMP'); #Write the XMP file
+      #If there is already an xmp file, just update it:
+      if (-e $luminance{$i}{filename}.".xmp") { 
+        $exifTool->WriteInfo($luminance{$i}{filename} . ".xmp")
+      }
+      #Otherwise, create a new one:
+      else {
+        $exifTool->WriteInfo(undef, $luminance{$i}{filename} . ".xmp", 'XMP'); #Write the XMP file
+      }
     }
     $progress->update( $i + 1 );
   }
