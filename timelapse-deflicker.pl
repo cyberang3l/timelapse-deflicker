@@ -34,6 +34,25 @@ my $DEBUG         = 0;
 my $RollingWindow = 15;
 my $Passes        = 1;
 
+#Define namespace and tag for luminance, to be used in the XMP files.
+%Image::ExifTool::UserDefined::luminance = (
+    GROUPS => { 0 => 'XMP', 1 => 'XMP-luminance', 2 => 'Image' },
+    NAMESPACE => { 'luminance' => 'https://github.com/cyberang3l/timelapse-deflicker' }, #Sort of semi stable reference?
+    WRITABLE => 'string',
+    luminance => {}
+);
+
+%Image::ExifTool::UserDefined = (
+    # new XMP namespaces (ie. XMP-xxx) must be added to the Main XMP table:
+    'Image::ExifTool::XMP::Main' => {
+        luminance => {
+            SubDirectory => {
+                TagTable => 'Image::ExifTool::UserDefined::luminance'
+            },
+        },
+    }
+);
+
 #####################
 # handle flags and arguments
 # h is "help" (no arguments)
@@ -152,7 +171,7 @@ sub luminance_det {
     my $exifTool = new Image::ExifTool;
     #Write luminance info to an xmp file.
     #in progress: testing xmp in/out
-    $exifTool->SetNewValue(Author => $luminance{$i}{value}); #TODO: Create and set custom tag instead of author tag
+    $exifTool->SetNewValue(luminance => $luminance{$i}{value}); 
     $exifTool->WriteInfo(undef, $luminance{$i}{filename} . ".xmp", 'XMP'); #Write the XMP file
     $progress->update( $i + 1 );
   }
