@@ -24,6 +24,7 @@ use Image::Magick;
 use Data::Dumper;
 use File::Type;
 use Term::ProgressBar;
+use Image::ExifTool qw(:Public);
 
 #use File::Spec;
 
@@ -33,9 +34,32 @@ my $DEBUG         = 0;
 my $RollingWindow = 15;
 my $Passes        = 1;
 
+#Define namespace and tag for luminance, to be used in the XMP files.
+%Image::ExifTool::UserDefined::luminance = (
+    GROUPS => { 0 => 'XMP', 1 => 'XMP-luminance', 2 => 'Image' },
+    NAMESPACE => { 'luminance' => 'https://github.com/cyberang3l/timelapse-deflicker' }, #Sort of semi stable reference?
+    WRITABLE => 'string',
+    luminance => {}
+);
+
+%Image::ExifTool::UserDefined = (
+    # new XMP namespaces (ie. XMP-xxx) must be added to the Main XMP table:
+    'Image::ExifTool::XMP::Main' => {
+        luminance => {
+            SubDirectory => {
+                TagTable => 'Image::ExifTool::UserDefined::luminance'
+            },
+        },
+    }
+);
+
 #####################
 # handle flags and arguments
-# Example: c == "-c", c: == "-c argument"
+# h is "help" (no arguments)
+# v is "verbose" (no arguments)
+# d is "debug" (no arguments)
+# w is "rolling window size" (single numeric argument)
+# p is "passes" (single numeric argument)
 my $opt_string = 'hvdw:p:';
 getopts( "$opt_string", \my %opt ) or usage() and exit 1;
 
@@ -50,74 +74,62 @@ $DEBUG         = 1         if $opt{'d'};
 $RollingWindow = $opt{'w'} if defined( $opt{'w'} );
 $Passes        = $opt{'p'} if defined( $opt{'p'} );
 
-die "The rolling average window for luminance smoothing should be a positive number greater or equal to 2" if ( $RollingWindow < 2 );
-die "The number of passes should be a positive number greater or equal to 1"                               if ( $Passes < 1 );
+#This integer test fails on "+n", but that isn't serious here.
+die "The rolling average window for luminance smoothing should be a positive number greater or equal to 2" if ! ($RollingWindow eq int( $RollingWindow ) && $RollingWindow > 1 ) ;
+die "The number of passes should be a positive number greater or equal to 1"                               if ! ($Passes eq int( $Passes ) && $Passes > 0 ) ;
 
-# main program content
+# Create hash to hold luminance values.
+# Format will be: TODO: Add this here
 my %luminance;
 
+# The working directory is the current directory.
 my $data_dir = ".";
-
 opendir( DATA_DIR, $data_dir ) || die "Cannot open $data_dir\n";
+#Put list of files in the directory into an array:
 my @files = readdir(DATA_DIR);
+#Assume that the files are named in dictionary sequence - they will be processed as such.
 @files = sort @files;
 
+#Initialize count variable to number files in hash
 my $count = 0;
 
+#Initialize a variable to hold the previous image type detected - if this changes, warn user
+my $prevfmt = "";
+
+#Process the list of files, putting all image files into the luminance hash.
 if ( scalar @files != 0 ) {
-
-  say "Original luminance of Images is being calculated";
-  say "Please be patient as this might take several minutes...";
-
   foreach my $filename (@files) {
-
-    my $ft   = File::Type->new();
-    my $type = $ft->mime_type($filename);
-
-    #say "$data_dir/$filename";
-    my ( $filetype, $fileformat ) = split( /\//, $type );
-    if ( $filetype eq "image" ) {
-      verbose("Original luminance of Image $filename is being processed...\n");
-
-      my $image = Image::Magick->new;
-      $image->Read($filename);
-      #$image->Gamma(gamma => 2.2, channel => 'All');
-      my @statistics = $image->Statistics();
-      # Use the command "identify -verbose DSC_8400.JPG" in order to see why $R, $G and $B
-      # are read from the following index in the statistics array
-      # This is the average R, G and B for the whole image.
-      #for(my $i = 0; $i < scalar(@statistics); $i++){
-      #  print($statistics[$i] . "\n");
-      #}
-      #exit(0);
-      my $R          = @statistics[ ( 0 * 7 ) + 3 ];
-      my $G          = @statistics[ ( 1 * 7 ) + 3 ];
-      my $B          = @statistics[ ( 2 * 7 ) + 3 ];
-
-      # We use the following formula to get the perceived luminance
-      $luminance{$count}{original} = 0.299 * $R + 0.587 * $G + 0.114 * $B;
-
-      #$luminance{$count}{original} = 0.2126 * $R + 0.7152 * $G + 0.0722 * $B;
-      $luminance{$count}{value}    = $luminance{$count}{original};
-      $luminance{$count}{filename} = $filename;
-
-      #$luminance{$count}{abs_path_filename} = File::Spec->rel2abs($filename);
-      $count++;
-    }
-
+      my $ft   = File::Type->new();
+      my $type = $ft->mime_type($filename);
+      my ( $filetype, $fileformat ) = split( /\//, $type );
+      #If it's an image file, add it to the luminance hash.
+      if ( $filetype eq "image" ) {
+        #Check whether we have a new image format - this is probably unwanted, so warn the user.
+        if ( $prevfmt eq "" ) { $prevfmt = $fileformat } elsif ( $prevfmt ne "warned" && $prevfmt ne $fileformat ) {
+          say "Images of type $prevfmt and $fileformat detected! ARE YOU SURE THIS IS JUST ONE IMAGE SEQUENCE?";
+          #no more warnings about this from now on
+          $prevfmt = "warned"
+        }
+        $luminance{$count}{filename} = $filename;
+        $count++;
+      }
   }
-
 }
 
 my $max_entries = scalar( keys %luminance );
 
-say "$max_entries images found in the folder which will be processed further.";
+if ( $max_entries < 2 ) { die "Cannot process less than two files.\n" }
+
+say "$max_entries image files to be processed.";
+say "Original luminance of Images is being calculated";
+#Determine luminance of each file and add to the hash.
+luminance_det();
 
 my $CurrentPass = 1;
 
 while ( $CurrentPass <= $Passes ) {
   say "\n-------------- LUMINANCE SMOOTHING PASS $CurrentPass/$Passes --------------\n";
-  luminance_calculation();
+  new_luminance_calculation();
   $CurrentPass++;
 }
 
@@ -130,8 +142,62 @@ say "$max_entries files have been processed";
 #####################
 # Helper routines
 
-sub luminance_calculation {
-  my $max_entries = scalar( keys %luminance );
+#Determine luminance of each image; add to hash.
+sub luminance_det {
+  my $progress    = Term::ProgressBar->new( { count => $max_entries } );
+
+  for ( my $i = 0; $i < $max_entries; $i++ ) {
+    verbose("Original luminance of Image $luminance{$i}{filename} is being processed...\n");
+    
+    #Create exifTool object for the image
+    my $exifTool = new Image::ExifTool;
+    my $exifinfo; #variable to hold info read from xmp file if present.
+
+    #If there's already an xmp file for this filename, read it.
+    if (-e $luminance{$i}{filename}.".xmp") { 
+      $exifinfo = $exifTool->ImageInfo($luminance{$i}{filename}.".xmp");
+      debug("Found xmp file: $luminance{$i}{filename}.xmp\n")
+    }
+    #Now, if it already has a luminance value, just use that:
+    if ( length $$exifinfo{Luminance} ) {
+      # Set it as the original and target value to start out with.
+      $luminance{$i}{value} = $luminance{$i}{original} = $$exifinfo{Luminance};
+      debug("Read luminance $$exifinfo{Luminance} from xmp file: $luminance{$i}{filename}.xmp\n")
+    }
+    else {
+      #Create ImageMagick object for the image
+      my $image = Image::Magick->new;
+      #Evaluate the image using ImageMagick.
+      $image->Read($luminance{$i}{filename});
+      my @statistics = $image->Statistics();
+      # Use the command "identify -verbose <some image file>" in order to see why $R, $G and $B
+      # are read from the following index in the statistics array
+      # This is the average R, G and B for the whole image.
+      my $R          = @statistics[ ( 0 * 7 ) + 3 ];
+      my $G          = @statistics[ ( 1 * 7 ) + 3 ];
+      my $B          = @statistics[ ( 2 * 7 ) + 3 ];
+
+      # We use the following formula to get the perceived luminance.
+      # Set it as the original and target value to start out with.
+      $luminance{$i}{value} = $luminance{$i}{original} = 0.299 * $R + 0.587 * $G + 0.114 * $B;
+
+      #Write luminance info to an xmp file.
+      #This is the xmp for the input file, so it contains the original luminance.
+      $exifTool->SetNewValue(luminance => $luminance{$i}{original}); 
+      #If there is already an xmp file, just update it:
+      if (-e $luminance{$i}{filename}.".xmp") { 
+        $exifTool->WriteInfo($luminance{$i}{filename} . ".xmp")
+      }
+      #Otherwise, create a new one:
+      else {
+        $exifTool->WriteInfo(undef, $luminance{$i}{filename} . ".xmp", 'XMP'); #Write the XMP file
+      }
+    }
+    $progress->update( $i + 1 );
+  }
+}
+
+sub new_luminance_calculation {
   my $progress    = Term::ProgressBar->new( { count => $max_entries } );
   my $low_window  = int( $RollingWindow / 2 );
   my $high_window = $RollingWindow - $low_window;
@@ -152,29 +218,20 @@ sub luminance_calculation {
 }
 
 sub luminance_change {
-  my $max_entries = scalar( keys %luminance );
   my $progress = Term::ProgressBar->new( { count => $max_entries } );
 
   for ( my $i = 0; $i < $max_entries; $i++ ) {
     debug("Original luminance of $luminance{$i}{filename}: $luminance{$i}{original}\n");
-    debug(" Changed luminance of $luminance{$i}{filename}: $luminance{$i}{value}\n");
+    debug("Changed luminance of $luminance{$i}{filename}: $luminance{$i}{value}\n");
 
     my $brightness = ( 1 / ( $luminance{$i}{original} / $luminance{$i}{value} ) ) * 100;
 
-    # Debug gamma and other imagemagick functions on command line:
-    #    convert DSC_8400.JPG -gamma 1 jpg:- | display jpg:-
-    #    convert DSC_8400.JPG -colorspace Gray -gamma 2.2 jpg:- | display jpg:-
-    #    convert DSC_8400.JPG -colorspace Gray -gamma 2.2 jpg:- | identify -verbose jpg:-
-    #    convert DSC_8400.JPG -format "%[gamma]\n" info:
-    #my $gamma = (1 / ( $luminance{$i}{original} / $luminance{$i}{value} ));
-
     debug("Imagemagick will set brightness of $luminance{$i}{filename} to: $brightness\n");
-
-    #debug("Imagemagick will set gamma value of $luminance{$i}{filename} to: $gamma\n");
 
     if ( !-d "Deflickered" ) {
       mkdir("Deflickered") || die "Error creating directory: $!\n";
     }
+    #TODO: Create directory name with timestamp to avoid overwriting previous work.
 
     debug("Changing brightness of $luminance{$i}{filename} and saving to the destination directory...\n");
     my $image = Image::Magick->new;
@@ -182,7 +239,6 @@ sub luminance_change {
 
     $image->Mogrify( 'modulate', brightness => $brightness );
 
-    #$image->Gamma( gamma => $gamma, channel => 'All' );
     $image->Write( "Deflickered/" . $luminance{$i}{filename} );
 
     $progress->update( $i + 1 );
