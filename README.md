@@ -12,7 +12,7 @@ How to use
 You will need to install a few perl packages needed by the script. On ubuntu based systems:
 
 ```
-apt-get install libfile-type-perl libterm-progressbar-perl perlmagick
+apt-get install libfile-type-perl libterm-progressbar-perl perlmagick libimage-exiftool-perl
 ```
 
 Then, download and save the script in the directory that you store the time lapse images that you want to deflicker. I usually save it in a directory known by the PATH environment variable so that I can access it from anywhere.
