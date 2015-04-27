@@ -104,14 +104,14 @@ if ( scalar @files != 0 ) {
       my ( $filetype, $fileformat ) = split( /\//, $type );
       #If it's an image file, add it to the luminance hash.
       if ( $filetype eq "image" ) {
-	#Check whether we have a new image format - this is probably unwanted, so warn the user.
-	if ( $prevfmt eq "" ) { $prevfmt = $fileformat } elsif ( $prevfmt ne "warned" && $prevfmt ne $fileformat ) {
-	  say "Images of type $prevfmt and $fileformat detected! ARE YOU SURE THIS IS JUST ONE IMAGE SEQUENCE?";
-	  #no more warnings about this from now on
-	  $prevfmt = "warned"
-	}
-	$luminance{$count}{filename} = $filename;
-	$count++;
+        #Check whether we have a new image format - this is probably unwanted, so warn the user.
+        if ( $prevfmt eq "" ) { $prevfmt = $fileformat } elsif ( $prevfmt ne "warned" && $prevfmt ne $fileformat ) {
+          say "Images of type $prevfmt and $fileformat detected! ARE YOU SURE THIS IS JUST ONE IMAGE SEQUENCE?";
+          #no more warnings about this from now on
+          $prevfmt = "warned"
+        }
+        $luminance{$count}{filename} = $filename;
+        $count++;
       }
   }
 }
@@ -129,7 +129,7 @@ my $CurrentPass = 1;
 
 while ( $CurrentPass <= $Passes ) {
   say "\n-------------- LUMINANCE SMOOTHING PASS $CurrentPass/$Passes --------------\n";
-  luminance_calculation();
+  new_luminance_calculation();
   $CurrentPass++;
 }
 
@@ -197,7 +197,7 @@ sub luminance_det {
   }
 }
 
-sub luminance_calculation {
+sub new_luminance_calculation {
   my $progress    = Term::ProgressBar->new( { count => $max_entries } );
   my $low_window  = int( $RollingWindow / 2 );
   my $high_window = $RollingWindow - $low_window;
