@@ -6,6 +6,7 @@ Deflickered
 *.tiff
 *.TIFF
 .*.swp
+*.xmp
 /blib/
 /.build/
 _build/
