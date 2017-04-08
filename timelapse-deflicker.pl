@@ -67,8 +67,6 @@ my $imStatsChangedVer = version->parse("6.9.0.0");
 my $im_version = version->parse($_im_version =~ s/-/./r);
 my $statFieldsPerColChannel = $im_version >= $imStatsChangedVer ? 8 : 7;
 
-debug("IM Version $_im_version: Using $statFieldsPerColChannel field stats.\n");
-
 # Global variables
 my $VERBOSE       = 0;
 my $DEBUG         = 0;
@@ -123,6 +121,9 @@ $Passes        = $opt{'p'} if defined( $opt{'p'} );
 #This integer test fails on "+n", but that isn't serious here.
 die "The rolling average window for luminance smoothing should be a positive number greater or equal to 2" if ! ($RollingWindow eq int( $RollingWindow ) && $RollingWindow > 1 ) ;
 die "The number of passes should be a positive number greater or equal to 1"                               if ! ($Passes eq int( $Passes ) && $Passes > 0 ) ;
+
+debug("IM Version $_im_version\n");
+debug("Using $statFieldsPerColChannel channel stat fields.\n");
 
 # Create hash to hold luminance values.
 # Format will be: TODO: Add this here
