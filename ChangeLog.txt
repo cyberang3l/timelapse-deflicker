@@ -1,0 +1,21 @@
+2017-04-08:
+    * Added version number to the script (eventually).
+    * Tagged the first version 0.1.0
+    * The script was not working correctly with IM versions >= 6.9
+      because the returned values of the Statistics functions changed.
+      Fixed that and the script should be now working with all versions.
+    * Added this ChangeLog.txt file.
+    * Thanks to David Rosky for pointing out the source of the bug :)
+
+During 2015:
+    * Added support to save the luminance in XMP files and re-read it
+      much faster if needed instead of having to re-calculate luminance
+      from scratch.
+    * Code cleanup.
+    * Added some further sanity checks.
+    * Thank you David Richfield (slashme) for contributing these changes
+      back to this project.
+
+Sometime in 2012...
+    * Initial version was released in ubuntuforums.
+      https://ubuntuforums.org/showthread.php?t=2022316
