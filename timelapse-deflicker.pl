@@ -28,6 +28,13 @@ use Image::ExifTool qw(:Public);
 
 #use File::Spec;
 
+# Pixel Channel Constants as defined in PixelChannel enum in MagicCore/pixel.h
+use constant {
+    RedPixelChannel => 0,
+    GreenPixelChannel => 1,
+    BluePixelChannel => 2,
+};
+
 # Global variables
 my $VERBOSE       = 0;
 my $DEBUG         = 0;
@@ -173,9 +180,9 @@ sub luminance_det {
       # Use the command "identify -verbose <some image file>" in order to see why $R, $G and $B
       # are read from the following index in the statistics array
       # This is the average R, G and B for the whole image.
-      my $R          = @statistics[ ( 0 * 7 ) + 3 ];
-      my $G          = @statistics[ ( 1 * 7 ) + 3 ];
-      my $B          = @statistics[ ( 2 * 7 ) + 3 ];
+      my $R          = @statistics[ ( RedPixelChannel * 7 ) + 3 ];
+      my $G          = @statistics[ ( GreenPixelChannel * 7 ) + 3 ];
+      my $B          = @statistics[ ( BluePixelChannel * 7 ) + 3 ];
 
       # We use the following formula to get the perceived luminance.
       # Set it as the original and target value to start out with.
