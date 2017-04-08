@@ -25,8 +25,16 @@ use Data::Dumper;
 use File::Type;
 use Term::ProgressBar;
 use Image::ExifTool qw(:Public);
+use version;
 
 #use File::Spec;
+
+# Set the version of the timelapse-deflicker script.
+our $VERSION = version->declare("0.1.0");
+
+# Read the version of the imagemagick library that is currently used.
+my ( $_im_version ) = Image::Magick->new->Get('version') =~ /\s+(\d+\.\d+\.\d+-\d+)\s+/;
+my $im_version = version->parse($_im_version =~ s/-/./r);
 
 # Pixel Channel Constants as defined in PixelChannel enum in MagicCore/pixel.h
 use constant {
@@ -67,12 +75,17 @@ my $Passes        = 1;
 # d is "debug" (no arguments)
 # w is "rolling window size" (single numeric argument)
 # p is "passes" (single numeric argument)
-my $opt_string = 'hvdw:p:';
+my $opt_string = 'hvdw:p:V';
 getopts( "$opt_string", \my %opt ) or usage() and exit 1;
 
 # print help message if -h is invoked
 if ( $opt{'h'} ) {
   usage();
+  exit 0;
+}
+
+if ( $opt{'V'} ) {
+  print_version();
   exit 0;
 }
 
@@ -261,8 +274,14 @@ sub usage {
   say "       Sometimes 2 passes might give better results.";
   say "       Usually you would not want a number higher than 2.";
   say "-h    Usage";
+  say "-V    Prints the version of this script and IM used.";
   say "-v    Verbose";
   say "-d    Debug";
+}
+
+sub print_version {
+  print "Timelapse-Deflicker v$VERSION\n";
+  print "   used with ImageMagick v$_im_version\n";
 }
 
 sub verbose {
