@@ -29,10 +29,11 @@ My original post that explains how to make time lapse videos on linux, and use t
 
 Since 2012 that I first made this post, time lapse making under Linux, and this script, got some more popularity. Now you can find more information about how to create time lapse videos just by using Linux, and some of them use this script for deflickering.
 
-Here is small list with some nice blogs/sites explaining the time lapse process, and use this script for deflickering:
+Here is small list with some nice blogs/sites explaining the time lapse process, and how have they used this script for deflickering:
 
 * [Time-lapse Photography with Linux ](http://joegiampaoli.blogspot.no/2015/04/creating-time-lapse-videos-mostly-in.html)
 * [Sunflower Timelapse Project](https://tamboekie.github.io/sunflower-timelapse/)
+* [How I edited 5100 photos for my last timelapse](https://medium.com/twidi-and-his-camera/how-i-edited-5100-photos-for-my-last-timelapse-20f9ef6fe5db)
 * [Command line time-lapse for OSX with de-flicker](https://sites.google.com/a/biodiversityshorts.com/biodiversityshorts/advanced-photography/command-line-tools-scripts-and-processing-for-photography/command-line-time-lapse-for-osx).
 
 [Here](https://www.youtube.com/watch?v=aABIlQokIaM) is a youtube video comparing this deflickering script with the [Magic Lantern](http://www.magiclantern.fm/forum/index.php?topic=2553.0) deflickering script.
