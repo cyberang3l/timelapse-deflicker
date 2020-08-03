@@ -23,6 +23,16 @@ The script will not *touch* your original images, so don't be afraid to use it. 
 
 Read the next section that has references on complete and more detailed tutorials.
 
+#### Mac Installation
+
+1. Clone this repo
+2. `cd timelapse-deflicker` then `chmod +x timelapse-deflicker.sh`
+3. `brew install imagemagick`
+4. [Download PerlMagick Source](https://imagemagick.org/script/perl-magick.php) & unzip
+5. `cd ImageMagick` and then `./configure -with-perl`
+6. `make`
+7. `sudo make install`
+
 More info and how to use
 ===================
 My original post that explains how to make time lapse videos on linux, and use this script for deflickering, is located at ubuntuforums [here](http://ubuntuforums.org/showthread.php?t=2022316). This post was the original hosting place of the script, since I didn't have a github account back then. I keep on updating this thread from time to time whenever I find some new interesting information that can improve the overall task.
